@@ -1,0 +1,6 @@
+*.bin
+*.npy
+**/__pychache__
+**/data
+**/en_es_data
+*.optim
