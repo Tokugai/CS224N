@@ -40,10 +40,32 @@ def pad_sents_char(sents, char_pad_token):
     ###
     ###     You should NOT use the method `pad_sents()` below because of the way it handles
     ###     padding and unknown words.
+    # sents_padded = []
 
+    # lens = [len(i) for i in sents]
+    # longest_sent = max(lens)
+
+    # for sent in sents:
+    #     words_padded = []
+    #     for word in sent:
+    #         if len(word) < max_word_length:
+    #             words_padded.append(word + [item for item in [char_pad_token]*(max_word_length-len(word))])
+    #         else:
+    #             words_padded.append(word[:max_word_length])
+    #     sents_padded.append(words_padded + [item for item in [[char_pad_token]*max_word_length] * (longest_sent-len(words_padded))])
+
+    def get_pad_chars(chars):
+        if len(chars) > max_word_length:
+            return chars[:max_word_length]
+        
+        return chars + [char_pad_token] * (max_word_length - len(chars))
+
+    pad_token = [[char_pad_token] * max_word_length]
+
+    max_len = max(len(s) for s in sents)
+    sents_padded = [[get_pad_chars(word) for word in sent] + pad_token * (max_len - len(sent)) for sent in sents]
 
     ### END YOUR CODE
-
     return sents_padded
 
 
@@ -60,7 +82,11 @@ def pad_sents(sents, pad_token):
     sents_padded = []
 
     ### COPY OVER YOUR CODE FROM ASSIGNMENT 4
+    lens = [len(i) for i in sents]
+    longest_sent = max(lens)
 
+    for sent in sents:
+        sents_padded.append(sent + [item for item in [pad_token]*(longest_sent-len(sent))])
 
     ### END YOUR CODE FROM ASSIGNMENT 4
 

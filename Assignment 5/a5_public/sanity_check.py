@@ -7,6 +7,8 @@ sanity_check.py: sanity checks for assignment 5
 Usage:
     sanity_check.py 1e
     sanity_check.py 1f
+    sanity_check.py 1h
+    sanity_check.py 1i
     sanity_check.py 1j
     sanity_check.py 2a
     sanity_check.py 2b
@@ -29,6 +31,8 @@ from vocab import Vocab, VocabEntry
 
 from char_decoder import CharDecoder
 from nmt_model import NMT
+from highway import Highway
+from cnn import CNN
 
 
 import torch
@@ -94,6 +98,65 @@ def question_1f_sanity_check():
 
     print("Sanity Check Passed for Question 1f: Padding!")
     print("-"*80)
+
+def question_1h_sanity_check():
+    """ Sanity check for highway. 
+    """
+    print ("-"*80)
+    print("Running Sanity Check for Question 1h: highway network")
+    print ("-"*80)
+
+    projection_weight = torch.tensor([[1.0,2.0,3.0],[4.0,5.0,6.0],[7.0,8.0,9.0]], dtype=torch.float)
+    projection_bias = torch.tensor([1.0,2.0,3.0], dtype=torch.float)
+    gate_weight = torch.tensor([[0.1,0.2,0.3],[0.4,0.5,0.6],[0.7,0.8,0.9]], dtype=torch.float)
+    gate_bias = torch.tensor([0.1,0.2,0.3], dtype=torch.float)
+
+    highway = Highway(EMBED_SIZE, DROPOUT_RATE)
+    highway.proj.weight = nn.Parameter(projection_weight)
+    highway.proj.bias = nn.Parameter(projection_bias)
+    highway.gate.weight = nn.Parameter(gate_weight)
+    highway.gate.bias = nn.Parameter(gate_bias)
+
+    highway.dropout.p = 0
+
+    x = torch.tensor([[2,-8,4], [1,3,9]], dtype=torch.float)
+
+    x_proj = torch.relu(torch.t(torch.mm(projection_weight, torch.t(x))) + projection_bias)
+    x_gate = torch.sigmoid(torch.t(torch.mm(gate_weight, torch.t(x))) + gate_bias)
+
+    x_highway = x_gate * x_proj + (1 - x_gate) * x
+    expected_output = highway.dropout(x_highway)
+    output = highway.forward(x)
+
+    assert torch.all(torch.eq(expected_output, output))
+    print("Sanity Check Passed for Question 1h: highway network!")
+    print("-"*80)   
+
+
+def question_1i_sanity_check():
+    """ Sanity check for CNN. 
+    """
+    print ("-"*80)
+    print("Running Sanity Check for Question 1h: CNN")
+    print ("-"*80)
+
+    f = word_embed = 3
+    char_embed = 2
+    k = 2
+    batch_size = 2
+
+    cnn = CNN(char_embed, word_embed, k)
+
+    x = torch.tensor([[[3,-3,3],[1,2,7]], [[2,4,-8],[1,0,1]]], dtype=torch.float)
+
+    
+    output = cnn.forward(x)
+    output_shape = list(output.size())
+
+    assert output_shape[0] == batch_size
+    assert output_shape[1] == word_embed
+    print("Sanity Check Passed for Question 1h: CNN!")
+    print("-"*80)   
 
 
 def question_1j_sanity_check(model):
@@ -184,7 +247,7 @@ def main():
 
     # Check Python & PyTorch Versions
     assert (sys.version_info >= (3, 5)), "Please update your installation of Python to version >= 3.5"
-    assert(torch.__version__ == "1.0.0"), "Please update your installation of PyTorch. You have {} and you should have version 1.0.0".format(torch.__version__)
+    # assert(torch.__version__ == "1.0.0"), "Please update your installation of PyTorch. You have {} and you should have version 1.0.0".format(torch.__version__)
 
     # Seed the Random Number Generators
     seed = 1234
@@ -213,6 +276,10 @@ def main():
         question_1e_sanity_check()
     elif args['1f']:
         question_1f_sanity_check()
+    elif args['1h']:
+        question_1h_sanity_check()
+    elif args['1i']:
+        question_1i_sanity_check()
     elif args['1j']:
         question_1j_sanity_check(model)
     elif args['2a']:
