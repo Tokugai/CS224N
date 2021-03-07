@@ -55,8 +55,13 @@ Don't change above here; write your code below
 """
 
 if args.variant == 'vanilla':
+    print('Training - Vanilla')
+    model = model.GPT(mconf)
     pass # TODO [part c]: Make some model here
+    
 elif args.variant == 'synthesizer':
+    print('Training - Synthesizer')
+    model = model.SynthGPT(mconf)
     pass # TODO [part g]: Make some other model here
 
 # From here on, your code should be identical independent of which
@@ -80,7 +85,16 @@ if args.function == 'pretrain':
     #     warmup_tokens=512*20
     #     final_tokens=200*len(pretrain_dataset)*block_size
     #     num_workers=4
-    raise NotImplementedError
+    tconf = trainer.TrainerConfig(max_epochs=650,
+        batch_size=128,
+        learning_rate=6e-3,
+        lr_decay=True,
+        warmup_tokens=512*20,
+        final_tokens=200*len(pretrain_dataset)*block_size,
+        num_workers=4)
+    trainer_ = trainer.Trainer(model, pretrain_dataset, None, tconf)
+    trainer_.train()
+    torch.save(model.state_dict(),args.writing_params_path)
 elif args.function == 'finetune':
     assert args.writing_params_path is not None
     assert args.finetune_corpus_path is not None
@@ -112,12 +126,37 @@ elif args.function == 'finetune':
     #         warmup_tokens=512*20
     #         final_tokens=200*len(pretrain_dataset)*block_size
     #         num_workers=4
-    raise NotImplementedError
+    if args.reading_params_path is not None:
+        print("Pretrainer Loaded")
+        tconf = trainer.TrainerConfig(max_epochs=10,
+            batch_size=256,
+            learning_rate=6e-4,
+            lr_decay=True,
+            warmup_tokens=512*20,
+            final_tokens=200*len(pretrain_dataset)*block_size,
+            num_workers=4)
+        model.load_state_dict(torch.load(args.reading_params_path))
+    else:
+        tconf = trainer.TrainerConfig(max_epochs=75,
+            batch_size=256,
+            learning_rate=6e-4,
+            lr_decay=True,
+            warmup_tokens=512*20,
+            final_tokens=200*len(pretrain_dataset)*block_size,
+            num_workers=4)
+    name_dataset = dataset.NameDataset(pretrain_dataset,
+            open(args.finetune_corpus_path).read())
+    
+    trainer_ = trainer.Trainer(model, name_dataset, None, tconf)
+    trainer_.train()
+    torch.save(model.state_dict(),args.writing_params_path)
+
 elif args.function == 'evaluate':
     assert args.outputs_path is not None
     assert args.reading_params_path is not None
     assert args.eval_corpus_path is not None
     model.load_state_dict(torch.load(args.reading_params_path))
+    model.to(device)
     correct = 0
     total = 0
     with open(args.outputs_path, 'w') as fout:
